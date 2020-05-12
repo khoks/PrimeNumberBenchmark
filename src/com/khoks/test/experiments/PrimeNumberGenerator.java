@@ -18,7 +18,7 @@ public class PrimeNumberGenerator {
 	private static final double START_NUM_RANGE = 100000000d;
 	private static final double END_NUM_RANGE = 10000000000d;
 	private static int threadNumBatchSize = 100;
-	private static int executorPoolSize = 16;
+	private static int executorPoolSize = 24;
 	private static int executorInputPoolSize = executorPoolSize * 2; 
 	public static final double NANO_TO_SECOND_RATIO = 1000000000d;
 	
