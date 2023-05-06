@@ -1,24 +1,18 @@
 package com.khoks.test.experiments;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
-public class SmartPrimeNumberGenerator implements Runnable{
+public class SmartPrimeNumberGenerator implements Runnable {
 
-	private static final double START_NUM_RANGE = 1000000000d;
+	private static double START_NUM_RANGE = 1000000000d;
 	private static final double END_NUM_RANGE = 100000000000d;
 	private static int threadNumBatchSize = 100;
-	private static int executorPoolSize = 24;
+	private static int executorPoolSize = 12;
 	private static int executorInputPoolSize = executorPoolSize * 2; 
 	public static final double NANO_TO_SECOND_RATIO = 1000000000d;
 	public static double PRIME_FUCTION_COUNT = 0;
@@ -28,97 +22,96 @@ public class SmartPrimeNumberGenerator implements Runnable{
 	static double CURRENT_RANGE = 0d ;
 	static double START_TIME  = System.nanoTime();
 	static double END_TIME = 0d;;
-	static Set<Future> THREAD_RESULTS = new HashSet<Future>();
+	static Set<Future> THREADS_IN_POOL = new HashSet<Future>();
 	static double PRIME_COUNT = 0d;
+	static double THREADS_EXECUTED_COUNT = 0d;
+	static Integer THREADS_INSERTED_COUNT = 0;
 	static double REMAINING_TRIES = executorInputPoolSize;
 	static boolean RUNNING_STATE = false;
 	
 	static SmartPrimeNumberGenerator test1Obj;
 	
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		System.out.println("Generating Prime numbers starting from " + START_NUM_RANGE);
 		test1Obj = new SmartPrimeNumberGenerator();		
 		test1Obj.threadExecuter();
 	}
 	
 	public void threadExecuter() {
-		double totalPrimeTime = 0d;
 		insertJobs();
 	}
 	
 	public synchronized void startInsertJobs() {
-
-		/*
-		 * while(RUNNING_STATE) { //SmartPrimeNumberGenerator.incrementLoopCount(); try
-		 * { Thread.sleep(2); } catch (InterruptedException e) { // TODO Auto-generated
-		 * catch block e.printStackTrace(); } }
-		 */
-		insertJobs();
+		if(!RUNNING_STATE) {
+			insertJobs();
+		}
 	}
 	
 	public synchronized void insertJobs() {
+		if(RUNNING_STATE)
+			return;
 		RUNNING_STATE = true;
 		boolean canInsert = true;
 		FindPrimeSmartly fpThread;
+		HashSet<Future> tempThreadsInPoolList = null;
 		for(CURRENT_RANGE = START_NUM_RANGE ; CURRENT_RANGE < END_NUM_RANGE ; CURRENT_RANGE = CURRENT_RANGE + threadNumBatchSize) {
-			//SmartPrimeNumberGenerator.incrementLoopCount();
-			fpThread =new FindPrimeSmartly(CURRENT_RANGE, threadNumBatchSize, this); 
+			fpThread =new FindPrimeSmartly(CURRENT_RANGE, threadNumBatchSize, this, String.valueOf(THREADS_INSERTED_COUNT));
 			canInsert = false;
 			while(true) {
-				//SmartPrimeNumberGenerator.incrementLoopCount();
-				if(THREAD_RESULTS.isEmpty() || THREAD_RESULTS.size() < executorInputPoolSize) {
+				if(THREADS_IN_POOL.isEmpty() || THREADS_IN_POOL.size() < executorInputPoolSize) {
 					canInsert = true;
-					//System.out.println("empty true");
+					break;
 				}else { 
-					for(Future fp : THREAD_RESULTS) {
-						//below line to be removed
-						//SmartPrimeNumberGenerator.incrementLoopCount();
+					/* try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) { e.printStackTrace(); } */
+					tempThreadsInPoolList = new HashSet<Future>(); 
+					for(Future fp : THREADS_IN_POOL) {
 						
 						if(fp.isDone()) {
-							THREAD_RESULTS.remove(fp);
+							//THREADS_IN_POOL.remove(fp);
 							canInsert = true;
-							PRIME_COUNT++;
+							THREADS_EXECUTED_COUNT++;
 							try {
 								PRIME_COUNT = PRIME_COUNT + ((Double)fp.get());
-								//totalPrimeTime = totalPrimeTime + ((PThreadPerformance)fp.get()).getTimeTaken();
-								//primeCount = primeCount + ((PThreadPerformance)fp.get()).getPrimeCount();
 							} catch (Exception e) { e.printStackTrace(); }
-							//System.out.println("remove true");
-							break;
+							//break;
+						} else {
+							tempThreadsInPoolList.add(fp);
 						}
 					}
+					THREADS_IN_POOL = tempThreadsInPoolList;
 				}
 				if(canInsert)
 					break;
 			}
 			END_TIME = System.nanoTime();
-			/*if(primeCount > 0) {
-				System.out.println("---\n---\n---\n****Averge time per Prime=" + (((endTime-startTime)/primeCount)/NANO_TO_SECOND_RATIO) + "s" + 
-					" \n****Total time taken by all threads combined =" + ((totalPrimeTime)/NANO_TO_SECOND_RATIO) + "s and \n****total prime numbers generated =" + 
-					primeCount + "\n****Total time taken by program so far = " + ((endTime-startTime)/NANO_TO_SECOND_RATIO) + "s\n---\n---\n---");
-			}*/
 			if((END_TIME-START_TIME)/NANO_TO_SECOND_RATIO > 60) {
-				System.out.println((END_TIME-START_TIME)/NANO_TO_SECOND_RATIO + "s");
-				System.out.println("PRIME_FUCTION_COUNT = " + PRIME_FUCTION_COUNT); 
-				System.out.println("LOOP_COUNT = " + LOOP_COUNT);
-				System.out.println("Prime Count = " + PRIME_COUNT);
+				System.out.println();
+				System.out.println(((END_TIME-START_TIME)/NANO_TO_SECOND_RATIO)/PRIME_COUNT + 
+					" Seconds per Prime after " + (END_TIME-START_TIME)/NANO_TO_SECOND_RATIO + 
+					" Seconds. Total Threads executed/inserted - " + THREADS_EXECUTED_COUNT + "/" + THREADS_INSERTED_COUNT);
+				//System.out.println((END_TIME-START_TIME)/NANO_TO_SECOND_RATIO + "s");
+				//System.out.println("THREADS_INSERTED_COUNT = " + THREADS_INSERTED_COUNT);
+				//System.out.println("THREADS_EXECUTED_COUNT = " + THREADS_EXECUTED_COUNT);
+				//System.out.println("Prime Count = " + PRIME_COUNT);
 			}
-			THREAD_RESULTS.add(EXECUTOR.submit(fpThread));
+			THREADS_IN_POOL.add(EXECUTOR.submit(fpThread));
+			THREADS_INSERTED_COUNT++;
 			
-			if(!THREAD_RESULTS.isEmpty() && THREAD_RESULTS.size() == executorInputPoolSize) {
+			if(!THREADS_IN_POOL.isEmpty() && THREADS_IN_POOL.size() == executorInputPoolSize) {
+				START_NUM_RANGE = CURRENT_RANGE + threadNumBatchSize;
+				RUNNING_STATE = false;
 				break;
 			}
 		}
+		START_NUM_RANGE = CURRENT_RANGE + threadNumBatchSize;
 		RUNNING_STATE = false;
 	}
-	
-	public static synchronized void incrementPrimeFunctionCount() {
-		PRIME_FUCTION_COUNT++;
-	}
-	
-	public static synchronized void incrementLoopCount() {
-		LOOP_COUNT++;
+
+	void fillThreadPoolOrReapIt() {
+
 	}
 
 	@Override
@@ -127,6 +120,7 @@ public class SmartPrimeNumberGenerator implements Runnable{
 		
 	}
 }
+
 class FindPrimeSmartly implements Callable{
 
 	double inputNumber;
@@ -136,10 +130,12 @@ class FindPrimeSmartly implements Callable{
 	int additionLoopCounterDivisor = 2;
 	int[] additionLoop = {2,4,2,2};
 	double startTime, endTime;
-	public FindPrimeSmartly(double inputNumber, int batchSize, SmartPrimeNumberGenerator smartPrimeNumberGenerator) {
+	String signature = null;
+	public FindPrimeSmartly(double inputNumber, int batchSize, SmartPrimeNumberGenerator smartPrimeNumberGenerator, String signature) {
 		this.inputNumber = inputNumber; 
 		this.batchSize = batchSize;
 		this.smartPrimeNumberGenerator = smartPrimeNumberGenerator;
+		this.signature = signature;
 	}
 	
 	@Override
@@ -178,10 +174,9 @@ class FindPrimeSmartly implements Callable{
 				//endTime = System.nanoTime();
 				//totalPrimeTime = totalPrimeTime + ((endTime-startTime));
 				//System.out.println("---Prime Number=" + i +  ", Time taken = " + ((endTime-startTime)/SmartPrimeNumberGenerator.NANO_TO_SECOND_RATIO) + "s");
-				System.out.print(".");
+				System.out.print("\033[0;" + signature + "m" + this.signature + ConsoleColors.RESET + " ");
 			}
 		}
-		//return new PThreadPerformance(totalPrimeTime, primeCount);
 		Thread t = new Thread(smartPrimeNumberGenerator);
 		t.start();
 		return primeCount;
