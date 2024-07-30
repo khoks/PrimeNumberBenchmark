@@ -12,7 +12,7 @@ public class SmartPrimeNumberGenerator implements Runnable {
 	private static double START_NUM_RANGE = 1000000000d;
 	private static final double END_NUM_RANGE = 100000000000d;
 	private static int threadNumBatchSize = 100;
-	// private static int executorPoolSize = 12;
+	private static int executorPoolSize =24;
 	// private static int executorInputPoolSize = executorPoolSize * 2;
 	private static int executorInputPoolSize = 32;
 	public static final double NANO_TO_SECOND_RATIO = 1000000000d;
@@ -88,7 +88,8 @@ public class SmartPrimeNumberGenerator implements Runnable {
 					break;
 			}
 			END_TIME = System.nanoTime();
-			if((END_TIME-START_TIME)/NANO_TO_SECOND_RATIO > 60) {
+			if(Double.valueOf((END_TIME-START_TIME)/NANO_TO_SECOND_RATIO).intValue() % 2 == 0 &&
+					((END_TIME-START_TIME)/NANO_TO_SECOND_RATIO) > 60) {
 				System.out.println();
 				System.out.println(((END_TIME-START_TIME)/NANO_TO_SECOND_RATIO)/PRIME_COUNT + 
 					" Seconds per Prime after " + (END_TIME-START_TIME)/NANO_TO_SECOND_RATIO + 
@@ -96,7 +97,8 @@ public class SmartPrimeNumberGenerator implements Runnable {
 				//System.out.println((END_TIME-START_TIME)/NANO_TO_SECOND_RATIO + "s");
 				//System.out.println("THREADS_INSERTED_COUNT = " + THREADS_INSERTED_COUNT);
 				//System.out.println("THREADS_EXECUTED_COUNT = " + THREADS_EXECUTED_COUNT);
-				//System.out.println("Prime Count = " + PRIME_COUNT);
+				System.out.println();
+				System.out.println("Prime Count = " + PRIME_COUNT);
 			}
 			THREADS_IN_POOL.add(EXECUTOR.submit(fpThread));
 			THREADS_INSERTED_COUNT++;
@@ -145,6 +147,7 @@ class FindPrimeSmartly implements Callable{
 		double primeCount = 0;
 		double totalPrimeTime = 0;
 		double j;
+		/*double numberSqrt = 0;*/
 		for(double i = inputNumber + 1 ; i < inputNumber + batchSize ; i = incrementNumberForDivision(i)) {
 			//below line to be removed
 			//SmartPrimeNumberGenerator.incrementPrimeFunctionCount();
@@ -162,7 +165,8 @@ class FindPrimeSmartly implements Callable{
 			}
 			
 			if(prime) {
-				for(j = 7 ; j < i ; j = incrementDivisorForDivision(j)) {
+				//numberSqrt = Math.floor(Math.sqrt(i));
+				for(j = 7 ; j < i /*j <= numberSqrt*/ ; j = incrementDivisorForDivision(j)) {
 					if(i%j == 0) {
 						prime = false;
 						break;
@@ -175,7 +179,7 @@ class FindPrimeSmartly implements Callable{
 				//endTime = System.nanoTime();
 				//totalPrimeTime = totalPrimeTime + ((endTime-startTime));
 				//System.out.println("---Prime Number=" + i +  ", Time taken = " + ((endTime-startTime)/SmartPrimeNumberGenerator.NANO_TO_SECOND_RATIO) + "s");
-				System.out+.print("\033[0;"  signature + "m" + this.signature + ConsoleColors.RESET + " ");
+				System.out.print("\033[0;" + signature + "m" + this.signature + ConsoleColors.RESET + " ");
 			}
 		}
 		Thread t = new Thread(smartPrimeNumberGenerator);
